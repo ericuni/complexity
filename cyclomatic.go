@@ -17,6 +17,7 @@ type Element struct {
 	Pkg        string // service/srv_material
 	Fun        string // completeSaveMaterialReq
 	Complexity int    // 19
+	Location   string // service/srv_material/save_material.go:84:1
 }
 
 func parseCyclomatic(ctx context.Context, path string) ([]*Element, error) {
@@ -37,10 +38,28 @@ func parseCyclomatic(ctx context.Context, path string) ([]*Element, error) {
 		if err != nil {
 			return nil, errorx.Trace(err)
 		}
+
+		if ifSkip(e) {
+			continue
+		}
+
 		res = append(res, e)
 	}
 
 	return res, nil
+}
+
+func ifSkip(e *Element) bool {
+	if strings.Contains(e.Location, ".generated.go") {
+		return true
+	}
+
+	// gomock
+	if strings.Contains(e.Pkg, "mock/") {
+		return true
+	}
+
+	return false
 }
 
 func line2Element(ctx context.Context, line string) (*Element, error) {
@@ -53,6 +72,7 @@ func line2Element(ctx context.Context, line string) (*Element, error) {
 		Pkg:        path.Dir(tokens[3]),
 		Fun:        tokens[2],
 		Complexity: cast.ToInt(tokens[0]),
+		Location:   tokens[3],
 	}
 
 	return e, nil
@@ -71,6 +91,10 @@ func merge(current, base []*Element) []Pair {
 
 	var res []Pair
 	for _, e := range current {
+		if e.Complexity <= 5 {
+			continue
+		}
+
 		ori, ok := m[getKey(e)]
 		if !ok {
 			res = append(res, Pair{Current: e})
@@ -88,10 +112,7 @@ func merge(current, base []*Element) []Pair {
 	}
 
 	sort.Slice(res, func(i, j int) bool {
-		if res[i].Current.Pkg != res[j].Current.Pkg {
-			return res[i].Current.Pkg < res[j].Current.Pkg
-		}
-		return res[i].Current.Fun <= res[j].Current.Fun
+		return res[i].Current.Complexity > res[j].Current.Complexity
 	})
 
 	return res

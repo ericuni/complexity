@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 
 	"github.com/ericuni/errorx"
 	"github.com/golang/glog"
@@ -51,11 +52,9 @@ func run(ctx context.Context) error {
 
 	for _, pair := range merged {
 		if pair.Base != nil {
-			glog.Infof("pkg: %s fun: %s complexity: %d(%d)", pair.Current.Pkg, pair.Current.Fun, pair.Current.Complexity,
-				pair.Current.Complexity-pair.Base.Complexity)
+			fmt.Printf("%s %s %d(%d)\n", pair.Current.Pkg, pair.Current.Fun, pair.Current.Complexity, pair.Current.Complexity-pair.Base.Complexity)
 		} else {
-			glog.Infof("pkg: %s fun: %s complexity: %d(%d)", pair.Current.Pkg, pair.Current.Fun, pair.Current.Complexity,
-				pair.Current.Complexity)
+			fmt.Printf("%s %s %d(%d)\n", pair.Current.Pkg, pair.Current.Fun, pair.Current.Complexity, pair.Current.Complexity)
 		}
 	}
 
