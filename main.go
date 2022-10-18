@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -10,15 +11,16 @@ import (
 )
 
 var (
-	flagBase    string
-	flagCurrent string
+	flagBase             string
+	flagCurrent          string
+	flagIgnoreComplexity int
 )
 
 func init() {
 	flag.Set("alsologtostderr", "true")
-	flag.Set("log_dir", "./")
-	flag.StringVar(&flagBase, "base", "", "base path")
-	flag.StringVar(&flagCurrent, "current", "", "current path")
+	flag.StringVar(&flagBase, "base", "./base", "base path")
+	flag.StringVar(&flagCurrent, "current", "./current", "current path")
+	flag.IntVar(&flagIgnoreComplexity, "ignore_complexity", 5, "ignore those functions with complexity <=")
 	flag.Parse()
 }
 
@@ -48,14 +50,24 @@ func run(ctx context.Context) error {
 		return errorx.Trace(err)
 	}
 
-	merged := merge(current, base)
+	merged := merge(current, base, flagIgnoreComplexity)
 
+	var buffer bytes.Buffer
 	for _, pair := range merged {
+		buffer.Reset()
+		buffer.WriteString(fmt.Sprintf("%s %s %d", pair.Current.File, pair.Current.Fun, pair.Current.Complexity))
+
+		diff := pair.Current.Complexity
 		if pair.Base != nil {
-			fmt.Printf("%s %s %d(%d)\n", pair.Current.Pkg, pair.Current.Fun, pair.Current.Complexity, pair.Current.Complexity-pair.Base.Complexity)
-		} else {
-			fmt.Printf("%s %s %d(%d)\n", pair.Current.Pkg, pair.Current.Fun, pair.Current.Complexity, pair.Current.Complexity)
+			diff = pair.Current.Complexity - pair.Base.Complexity
 		}
+
+		if diff > 0 {
+			buffer.WriteString(fmt.Sprintf("(+%d)", diff))
+		} else {
+			buffer.WriteString(fmt.Sprintf("(-%d)", -diff))
+		}
+		fmt.Println(buffer.String())
 	}
 
 	return nil

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"sort"
 	"strings"
 
@@ -12,12 +11,13 @@ import (
 	"github.com/spf13/cast"
 )
 
-// 19 srv_material completeSaveMaterialReq service/srv_material/save_material.go:84:1
+// 19 srv_xxx doXxx service/srv_xxx/doXxx.go:84:1
+// 1 mock_dbops (*MockXxxRepo).DoXxx mock/dal/dbops/xxx.go:176:1
 type Element struct {
-	Pkg        string // service/srv_material
-	Fun        string // completeSaveMaterialReq
-	Complexity int    // 19
-	Location   string // service/srv_material/save_material.go:84:1
+	Fun        string // (*MockXxxRepo).DoXxx
+	Complexity int    // 1
+	File       string // mock/dal/dbops/xxx.go
+	Pkg        string // mock_dbops
 }
 
 func parseCyclomatic(ctx context.Context, path string) ([]*Element, error) {
@@ -50,12 +50,12 @@ func parseCyclomatic(ctx context.Context, path string) ([]*Element, error) {
 }
 
 func ifSkip(e *Element) bool {
-	if strings.Contains(e.Location, ".generated.go") {
+	if strings.Contains(e.File, ".generated.go") {
 		return true
 	}
 
 	// gomock
-	if strings.Contains(e.Pkg, "mock/") {
+	if strings.Contains(e.File, "mock/") {
 		return true
 	}
 
@@ -69,11 +69,17 @@ func line2Element(ctx context.Context, line string) (*Element, error) {
 	}
 
 	e := &Element{
-		Pkg:        path.Dir(tokens[3]),
 		Fun:        tokens[2],
 		Complexity: cast.ToInt(tokens[0]),
-		Location:   tokens[3],
+		Pkg:        tokens[1],
 	}
+
+	location := tokens[3]
+	tokens = strings.Split(location, ":")
+	if len(tokens) != 3 {
+		return nil, errorx.New("location %s format error", location)
+	}
+	e.File = tokens[0]
 
 	return e, nil
 }
@@ -83,7 +89,8 @@ type Pair struct {
 	Base    *Element
 }
 
-func merge(current, base []*Element) []Pair {
+// ignore those functions with complexity <= ignoreComplexity
+func merge(current, base []*Element, ignoreComplexity int) []Pair {
 	m := make(map[string]*Element, len(base))
 	for _, e := range base {
 		m[getKey(e)] = e
@@ -91,7 +98,7 @@ func merge(current, base []*Element) []Pair {
 
 	var res []Pair
 	for _, e := range current {
-		if e.Complexity <= 5 {
+		if e.Complexity <= ignoreComplexity {
 			continue
 		}
 
@@ -119,5 +126,5 @@ func merge(current, base []*Element) []Pair {
 }
 
 func getKey(e *Element) string {
-	return fmt.Sprintf("%s|%s", e.Pkg, e.Fun)
+	return fmt.Sprintf("%s|%s", e.File, e.Fun)
 }
