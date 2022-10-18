@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/ericuni/complexity/internal"
 	"github.com/ericuni/errorx"
@@ -15,13 +16,15 @@ var (
 	flagBase             string
 	flagCurrent          string
 	flagIgnoreComplexity int
+	flagMaxComplexity    int
 )
 
 func init() {
 	flag.Set("alsologtostderr", "true")
 	flag.StringVar(&flagBase, "base", "./base", "base path")
 	flag.StringVar(&flagCurrent, "current", "./current", "current path")
-	flag.IntVar(&flagIgnoreComplexity, "ignore_complexity", 5, "ignore those functions with complexity <=")
+	flag.IntVar(&flagIgnoreComplexity, "ignore_complexity", 5, "do not display those functions with complexity <= ignore_complexity")
+	flag.IntVar(&flagMaxComplexity, "max_complexity", 20, "when there is a function whose complexity >= max_complexity, exit with status 1")
 	flag.Parse()
 }
 
@@ -31,6 +34,7 @@ func main() {
 	ctx := context.Background()
 	if err := run(ctx); err != nil {
 		glog.Errorf("run error %+v", err)
+		os.Exit(-1)
 		return
 	}
 	glog.Infoln("done")
@@ -51,10 +55,10 @@ func run(ctx context.Context) error {
 		return errorx.Trace(err)
 	}
 
-	merged := internal.CompareAndMerge(current, base, flagIgnoreComplexity)
+	pairs := internal.CompareAndMerge(current, base, flagIgnoreComplexity)
 
 	var buffer bytes.Buffer
-	for _, pair := range merged {
+	for _, pair := range pairs {
 		buffer.Reset()
 		buffer.WriteString(fmt.Sprintf("%s %s %d", pair.Current.File, pair.Current.Fun, pair.Current.Complexity))
 
@@ -69,6 +73,10 @@ func run(ctx context.Context) error {
 			buffer.WriteString(fmt.Sprintf("(-%d)", -diff))
 		}
 		fmt.Println(buffer.String())
+	}
+
+	if len(pairs) > 0 && pairs[0].Current.Complexity >= flagMaxComplexity {
+		os.Exit(1)
 	}
 
 	return nil
