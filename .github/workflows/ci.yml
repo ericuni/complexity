@@ -22,3 +22,14 @@ jobs:
     - name: build
       run: go build -v
 
+    - name: unit test
+      run: go test -race -gcflags=all=-l -coverprofile=coverage.out ./...
+
+    - name: install goveralls
+      run: go install github.com/mattn/goveralls@latest
+
+    - name: update coverage on coveralls.io
+      env:
+        COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: goveralls -coverprofile=coverage.out -service=github
+
