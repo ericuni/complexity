@@ -14,6 +14,18 @@ gocyclo . >base
 git checkout target
 gocyclo . >current
 
-complexity --base base --current current
+complexity
+```
+
+```plain
+Usage of ./complexity:
+  -base string
+    base path (default "./base")
+  -current string
+    current path (default "./current")
+  -max_complexity int
+    when there is a function whose complexity > max_complexity, exit with status 1 (default 20)
+  -min_complexity int
+    do not display those functions with complexity < min_complexity (default 5)
 ```
 
