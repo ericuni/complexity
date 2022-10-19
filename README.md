@@ -8,6 +8,9 @@ calculate the complexity diff based on the output of [gocyclo](https://github.co
 [gocognit](https://github.com/uudashr/gocognit)
 
 ```bash
+go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+go install github.com/ericuni/complexity@latest
+
 git checkout master
 gocyclo . >base
 
