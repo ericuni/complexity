@@ -26,6 +26,8 @@ func Test_line2item(t *testing.T) {
 				Complexity: 5,
 				File:       "service/srv_material/save_material.go",
 				Pkg:        "srv_material",
+				Line:       153,
+				Column:     1,
 			},
 		},
 		{
@@ -36,6 +38,8 @@ func Test_line2item(t *testing.T) {
 				Complexity: 6,
 				File:       "dal/dbops/material.generated.go",
 				Pkg:        "dbops",
+				Line:       42,
+				Column:     1,
 			},
 		},
 	}
@@ -103,12 +107,16 @@ func TestParseComplexity(t *testing.T) {
 			Complexity: 5,
 			File:       "service/srv_material/save_material.go",
 			Pkg:        "srv_material",
+			Line:       153,
+			Column:     1,
 		},
 		{
 			Fun:        "(*Material).ToMaterialData",
 			Complexity: 4,
 			File:       "dal/ddl/material.go",
 			Pkg:        "ddl",
+			Line:       46,
+			Column:     1,
 		},
 	}
 

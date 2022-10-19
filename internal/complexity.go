@@ -17,6 +17,8 @@ type Item struct {
 	Complexity int
 	File       string
 	Pkg        string
+	Line       int
+	Column     int
 }
 
 func ParseComplexity(ctx context.Context, path string) ([]*Item, error) {
@@ -82,6 +84,8 @@ func line2item(ctx context.Context, line string) (*Item, error) {
 		return nil, errorx.New("location %s format error", location)
 	}
 	item.File = tokens[0]
+	item.Line = cast.ToInt(tokens[1])
+	item.Column = cast.ToInt(tokens[2])
 
 	return item, nil
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -57,26 +56,17 @@ func run(ctx context.Context) error {
 
 	pairs := internal.Merge(base, current)
 
-	var buffer bytes.Buffer
 	for _, pair := range pairs {
 		if pair.Current.Complexity < flagMinComplexity {
 			continue
 		}
 
-		buffer.Reset()
-		buffer.WriteString(fmt.Sprintf("%s %s %d", pair.Current.File, pair.Current.Fun, pair.Current.Complexity))
-
-		diff := pair.Current.Complexity
-		if pair.Base != nil {
-			diff = pair.Current.Complexity - pair.Base.Complexity
+		diff := getComplexity(pair)
+		if diff == "" {
+			continue
 		}
 
-		if diff > 0 {
-			buffer.WriteString(fmt.Sprintf("(+%d)", diff))
-		} else {
-			buffer.WriteString(fmt.Sprintf("(-%d)", -diff))
-		}
-		fmt.Println(buffer.String())
+		fmt.Println(pair.Current.File, pair.Current.Fun, diff)
 	}
 
 	if len(pairs) > 0 && pairs[0].Current.Complexity > flagMaxComplexity {
@@ -84,4 +74,20 @@ func run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func getComplexity(pair internal.Pair) string {
+	diff := pair.Current.Complexity
+	if pair.Base != nil {
+		diff = pair.Current.Complexity - pair.Base.Complexity
+	}
+
+	if diff == 0 {
+		return ""
+	}
+
+	if diff > 0 {
+		return fmt.Sprintf("%d(+%d)", pair.Current.Complexity, diff)
+	}
+	return fmt.Sprintf("%d(-%d)", pair.Current.Complexity, -diff)
 }
