@@ -13,18 +13,18 @@ import (
 )
 
 var (
-	flagBase             string
-	flagCurrent          string
-	flagIgnoreComplexity int
-	flagMaxComplexity    int
+	flagBase          string
+	flagCurrent       string
+	flagMinComplexity int
+	flagMaxComplexity int
 )
 
 func init() {
-	flag.Set("alsologtostderr", "true")
+	flag.Set("logtostderr", "true")
 	flag.StringVar(&flagBase, "base", "./base", "base path")
 	flag.StringVar(&flagCurrent, "current", "./current", "current path")
-	flag.IntVar(&flagIgnoreComplexity, "ignore_complexity", 5, "do not display those functions with complexity <= ignore_complexity")
-	flag.IntVar(&flagMaxComplexity, "max_complexity", 20, "when there is a function whose complexity >= max_complexity, exit with status 1")
+	flag.IntVar(&flagMinComplexity, "min_complexity", 5, "do not display those functions with complexity < min_complexity")
+	flag.IntVar(&flagMaxComplexity, "max_complexity", 20, "when there is a function whose complexity > max_complexity, exit with status 1")
 	flag.Parse()
 }
 
@@ -55,10 +55,14 @@ func run(ctx context.Context) error {
 		return errorx.Trace(err)
 	}
 
-	pairs := internal.CompareAndMerge(current, base, flagIgnoreComplexity)
+	pairs := internal.Merge(base, current)
 
 	var buffer bytes.Buffer
 	for _, pair := range pairs {
+		if pair.Current.Complexity < flagMinComplexity {
+			continue
+		}
+
 		buffer.Reset()
 		buffer.WriteString(fmt.Sprintf("%s %s %d", pair.Current.File, pair.Current.Fun, pair.Current.Complexity))
 
@@ -75,7 +79,7 @@ func run(ctx context.Context) error {
 		fmt.Println(buffer.String())
 	}
 
-	if len(pairs) > 0 && pairs[0].Current.Complexity >= flagMaxComplexity {
+	if len(pairs) > 0 && pairs[0].Current.Complexity > flagMaxComplexity {
 		os.Exit(1)
 	}
 

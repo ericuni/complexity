@@ -33,12 +33,12 @@ func ParseComplexity(ctx context.Context, path string) ([]*Item, error) {
 			continue
 		}
 
-		e, err := line2Item(ctx, line)
+		e, err := line2item(ctx, line)
 		if err != nil {
 			return nil, errorx.Trace(err)
 		}
 
-		if ifSkip(e) {
+		if skipOrNot(e) {
 			continue
 		}
 
@@ -48,7 +48,7 @@ func ParseComplexity(ctx context.Context, path string) ([]*Item, error) {
 	return res, nil
 }
 
-func ifSkip(e *Item) bool {
+func skipOrNot(e *Item) bool {
 	if strings.Contains(e.File, ".generated.go") {
 		return true
 	}
@@ -61,7 +61,7 @@ func ifSkip(e *Item) bool {
 	return false
 }
 
-func line2Item(ctx context.Context, line string) (*Item, error) {
+func line2item(ctx context.Context, line string) (*Item, error) {
 	// line format: <complexity> <package> <function> <file:line:column>
 	// example 1: 19 srv_xxx doXxx service/srv_xxx/doXxx.go:84:1
 	// example 2: 1 mock_dbops (*MockXxxRepo).DoXxx mock/dal/dbops/xxx.go:176:1
@@ -91,8 +91,7 @@ type Pair struct {
 	Base    *Item
 }
 
-// ignore those functions with complexity <= ignoreComplexity
-func CompareAndMerge(current, base []*Item, ignoreComplexity int) []Pair {
+func Merge(base, current []*Item) []Pair {
 	m := make(map[string]*Item, len(base))
 	for _, item := range base {
 		m[getKey(item)] = item
@@ -100,17 +99,9 @@ func CompareAndMerge(current, base []*Item, ignoreComplexity int) []Pair {
 
 	var res []Pair
 	for _, item := range current {
-		if item.Complexity <= ignoreComplexity {
-			continue
-		}
-
 		ori, ok := m[getKey(item)]
 		if !ok {
 			res = append(res, Pair{Current: item})
-			continue
-		}
-
-		if item.Complexity == ori.Complexity {
 			continue
 		}
 
